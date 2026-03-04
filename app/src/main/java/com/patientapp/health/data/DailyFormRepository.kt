@@ -50,13 +50,14 @@ class DailyFormRepository {
     fun getFormsByPatient(patientId: String): Flow<List<DailyForm>> = callbackFlow {
         val listener = firestore.collection(DailyForm.COLLECTION)
             .whereEqualTo(DailyForm.FIELD_PATIENT_ID, patientId)
-            .orderBy(DailyForm.FIELD_SUBMITTED_AT, com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
-                val forms = snapshot?.documents?.mapNotNull { it.toDailyForm() } ?: emptyList()
+                val forms = snapshot?.documents?.mapNotNull { it.toDailyForm() }
+                    ?.sortedByDescending { it.submittedAt }
+                    ?: emptyList()
                 trySend(forms)
             }
         awaitClose { listener.remove() }
@@ -65,13 +66,14 @@ class DailyFormRepository {
     fun getFormsByDoctor(doctorId: String): Flow<List<DailyForm>> = callbackFlow {
         val listener = firestore.collection(DailyForm.COLLECTION)
             .whereEqualTo(DailyForm.FIELD_DOCTOR_ID, doctorId)
-            .orderBy(DailyForm.FIELD_SUBMITTED_AT, com.google.firebase.firestore.Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
-                val forms = snapshot?.documents?.mapNotNull { it.toDailyForm() } ?: emptyList()
+                val forms = snapshot?.documents?.mapNotNull { it.toDailyForm() }
+                    ?.sortedByDescending { it.submittedAt }
+                    ?: emptyList()
                 trySend(forms)
             }
         awaitClose { listener.remove() }

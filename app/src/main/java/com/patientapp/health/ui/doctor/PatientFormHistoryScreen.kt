@@ -97,10 +97,6 @@ private fun FormHistoryCard(form: DailyForm) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Temperature: ${form.bodyTemperature}\u00B0C",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
                 text = "Pain level: ${form.painLevel}/10",
                 style = MaterialTheme.typography.bodyMedium
             )
