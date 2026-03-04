@@ -38,7 +38,7 @@ fun PatientFormHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(patient.displayName ?: patient.email) },
+                title = { Text(patient.displayName ?: patient.identifier) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -83,7 +83,7 @@ fun PatientFormHistoryScreen(
 private fun FormHistoryCard(form: DailyForm) {
     val dateStr = form.submittedAt?.toDate()?.let {
         SimpleDateFormat("MMM d, yyyy 'at' HH:mm", Locale.getDefault()).format(it)
-    } ?: "—"
+    } ?: "\u2014"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -97,7 +97,7 @@ private fun FormHistoryCard(form: DailyForm) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Temperature: ${form.bodyTemperature}°C",
+                text = "Temperature: ${form.bodyTemperature}\u00B0C",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(

@@ -4,11 +4,19 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.google.firebase.analytics.FirebaseAnalytics
 
 class PatientApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        enableAnalyticsAfterStartup()
+    }
+
+    private fun enableAnalyticsAfterStartup() {
+        android.os.Handler(mainLooper).postDelayed({
+            FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(true)
+        }, 3000)
     }
 
     private fun createNotificationChannel() {

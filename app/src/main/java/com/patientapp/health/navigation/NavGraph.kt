@@ -54,9 +54,13 @@ fun NavGraph(
             ) {
                 LoginScreen(
                     uiState = authState,
-                    onSignIn = { email, password -> authViewModel.signIn(email, password) },
+                    onSignIn = { phone, password -> authViewModel.signIn(phone, password) },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignInWithPhoneCode = { id, code -> authViewModel.signInWithPhoneCode(id, code) },
+                    onSignInWithPhoneCredential = { authViewModel.signInWithStoredPhoneCredential() },
                     onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -69,11 +73,17 @@ fun NavGraph(
             ) {
                 RegisterScreen(
                     uiState = authState,
-                    onSignUp = { email, pass, role, name ->
-                        authViewModel.signUp(email, pass, role, name)
+                    onSignUp = { phone, password, name ->
+                        authViewModel.signUp(phone, password, name)
                     },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignUpWithPhoneCode = { id, code, role, name ->
+                        authViewModel.signUpWithPhoneCode(id, code, role, name)
+                    },
+                    onSignUpWithPhoneCredential = { role, name -> authViewModel.signUpWithPhoneCredential(role, name) },
                     onNavigateToLogin = { navController.popBackStack() },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -82,7 +92,7 @@ fun NavGraph(
         composable(Screen.DoctorHome.route) {
             val doctorId = authState.currentUser?.id ?: return@composable
             val doctorViewModel = remember(doctorId) {
-                DoctorViewModel(doctorId, userRepository, dailyFormRepository)
+                DoctorViewModel(doctorId, authRepository, userRepository, dailyFormRepository)
             }
             val doctorState by doctorViewModel.uiState.collectAsState()
             var showAddDialog by remember { mutableStateOf(false) }
@@ -94,8 +104,8 @@ fun NavGraph(
                         showAddDialog = false
                         doctorViewModel.clearAddPatientState()
                     },
-                    onConfirm = { email, displayName ->
-                        doctorViewModel.addPatient(email, displayName)
+                    onConfirm = { phone, displayName ->
+                        doctorViewModel.addPatient(phone, displayName)
                     },
                     error = doctorState.addPatientError,
                     success = doctorState.addPatientSuccess
@@ -146,7 +156,6 @@ fun NavGraph(
         }
     }
 
-    // Navigate to role home when logged in
     androidx.compose.runtime.LaunchedEffect(authState.isLoggedIn, authState.currentUser) {
         if (authState.isLoggedIn && authState.currentUser != null) {
             val user = authState.currentUser!!

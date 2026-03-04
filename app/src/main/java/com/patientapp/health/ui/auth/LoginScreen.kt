@@ -1,5 +1,6 @@
 package com.patientapp.health.ui.auth
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,12 +34,16 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LoginScreen(
     uiState: AuthUiState,
-    onSignIn: (email: String, password: String) -> Unit,
+    onSignIn: (phone: String, password: String) -> Unit,
+    onSendPhoneCode: (phoneNumber: String, activity: Activity) -> Unit,
+    onSignInWithPhoneCode: (verificationId: String, code: String) -> Unit,
+    onSignInWithPhoneCredential: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onClearError: () -> Unit,
+    onClearPhoneState: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.error) {
@@ -73,10 +78,12 @@ fun LoginScreen(
             ) {
                 Text("Sign in", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone number") },
+                    placeholder = { Text("+1234567890") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 )
@@ -91,14 +98,22 @@ fun LoginScreen(
                     enabled = !uiState.isLoading
                 )
                 Button(
-                    onClick = { onSignIn(email, password) },
+                    onClick = { onSignIn(phone, password) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && phone.isNotBlank() && password.isNotBlank()
                 ) {
-                    Text(if (uiState.isLoading) "Signing in…" else "Sign in")
+                    Text(if (uiState.isLoading) "Signing in\u2026" else "Sign in")
                 }
-                TextButton(onClick = onNavigateToRegister) {
-                    Text("Don't have an account? Register")
+                Text(
+                    text = "Patients: your default password is your phone number.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = {
+                    onClearPhoneState()
+                    onNavigateToRegister()
+                }) {
+                    Text("Doctor? Register here")
                 }
             }
         }

@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
+import com.patientapp.health.ui.icons.PersonAddIcon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,7 +56,7 @@ fun DoctorHomeScreen(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "Add patient")
+                Icon(PersonAddIcon, contentDescription = "Add patient")
             }
         }
     ) { padding ->
@@ -129,11 +129,11 @@ private fun PatientCard(
             Spacer(modifier = Modifier.padding(horizontal = 12.dp))
             Column {
                 Text(
-                    text = patient.displayName ?: patient.email,
+                    text = patient.displayName ?: patient.identifier,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = patient.email,
+                    text = patient.identifier,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

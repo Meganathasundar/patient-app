@@ -1,28 +1,43 @@
 package com.patientapp.health.data
 
+import android.app.Activity
+import android.content.Context
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
-/**
- * Repository for Firebase Auth and user profile in Firestore.
- * - Auth: sign in, sign up, sign out, auth state.
- * - Firestore: read/write user profile in "users" and "pending_patients" for sign-up flow.
- */
-class AuthRepository {
+sealed class PhoneVerificationResult {
+    data class CodeSent(val verificationId: String) : PhoneVerificationResult()
+    data class VerificationCompleted(val credential: PhoneAuthCredential) : PhoneVerificationResult()
+}
 
-    private val auth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
+class AuthRepository(private val appContext: Context) {
+
+    private val auth by lazy { FirebaseAuth.getInstance() }
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
 
     val currentUser: FirebaseUser?
         get() = auth.currentUser
 
     val currentUserId: String?
         get() = auth.currentUser?.uid
+
+    private fun phoneToEmail(phone: String): String {
+        val sanitized = phone.replace(Regex("[^0-9]"), "")
+        return "$sanitized@phone.patientapp.com"
+    }
 
     fun authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
@@ -32,46 +47,148 @@ class AuthRepository {
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
-    suspend fun signUp(email: String, password: String, role: UserRole, displayName: String?): Result<FirebaseUser> {
+    /** Register a new doctor with phone + password. */
+    suspend fun signUp(phone: String, password: String, displayName: String?): Result<FirebaseUser> {
         return try {
-            val result = auth.createUserWithEmailAndPassword(email, password).await()
+            val syntheticEmail = phoneToEmail(phone)
+            val result = auth.createUserWithEmailAndPassword(syntheticEmail, password).await()
             val user = result.user ?: return Result.failure(Exception("User is null"))
-            if (role == UserRole.PATIENT) {
-                val pendingDoc = firestore.collection(FirestoreConstants.PENDING_PATIENTS)
-                    .document(email.replace(".", "_")).get().await()
-                if (!pendingDoc.exists()) {
-                    auth.currentUser?.delete()?.await()
-                    return Result.failure(Exception("No invite found for this email. Ask your doctor to add you first."))
-                }
-                val doctorId = pendingDoc.getString(FirestoreConstants.DOCTOR_ID) ?: ""
-                val name = pendingDoc.getString(FirestoreConstants.DISPLAY_NAME) ?: email.substringBefore("@")
-                val firestoreUser = hashMapOf(
-                    FirestoreConstants.EMAIL to email,
-                    FirestoreConstants.ROLE to UserRole.PATIENT.name,
-                    FirestoreConstants.DISPLAY_NAME to name,
-                    FirestoreConstants.DOCTOR_ID to doctorId
-                )
-                firestore.collection(FirestoreConstants.USERS).document(user.uid).set(firestoreUser).await()
-                firestore.collection(FirestoreConstants.PENDING_PATIENTS).document(pendingDoc.id).delete().await()
-            } else {
-                val firestoreUser = hashMapOf(
-                    FirestoreConstants.EMAIL to email,
-                    FirestoreConstants.ROLE to role.name,
-                    FirestoreConstants.DISPLAY_NAME to (displayName ?: email.substringBefore("@")),
-                    FirestoreConstants.DOCTOR_ID to null
-                )
-                firestore.collection(FirestoreConstants.USERS).document(user.uid).set(firestoreUser).await()
-            }
+            val userData = hashMapOf(
+                FirestoreConstants.PHONE to phone,
+                FirestoreConstants.ROLE to UserRole.DOCTOR.name,
+                FirestoreConstants.DISPLAY_NAME to (displayName ?: phone),
+                FirestoreConstants.DOCTOR_ID to null
+            )
+            firestore.collection(FirestoreConstants.USERS).document(user.uid).set(userData).await()
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun signIn(email: String, password: String): Result<FirebaseUser> {
+    suspend fun signIn(phone: String, password: String): Result<FirebaseUser> {
         return try {
-            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val syntheticEmail = phoneToEmail(phone)
+            val result = auth.signInWithEmailAndPassword(syntheticEmail, password).await()
             val user = result.user ?: return Result.failure(Exception("User is null"))
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Creates a patient account without affecting the current doctor's session.
+     * Uses a secondary FirebaseApp instance so the doctor stays signed in.
+     * The patient's password is set to their phone number.
+     */
+    suspend fun createPatientAccount(
+        phone: String,
+        displayName: String,
+        doctorId: String
+    ): Result<Unit> {
+        return try {
+            val secondaryApp = try {
+                FirebaseApp.getInstance("patientCreator")
+            } catch (_: IllegalStateException) {
+                FirebaseApp.initializeApp(
+                    appContext,
+                    FirebaseApp.getInstance().options,
+                    "patientCreator"
+                )
+            }
+            val secondaryAuth = FirebaseAuth.getInstance(secondaryApp)
+            val syntheticEmail = phoneToEmail(phone)
+            val result = secondaryAuth.createUserWithEmailAndPassword(syntheticEmail, phone).await()
+            val patientUid = result.user?.uid
+                ?: return Result.failure(Exception("Failed to create patient account"))
+            secondaryAuth.signOut()
+
+            val userData = hashMapOf(
+                FirestoreConstants.PHONE to phone,
+                FirestoreConstants.ROLE to UserRole.PATIENT.name,
+                FirestoreConstants.DISPLAY_NAME to displayName,
+                FirestoreConstants.DOCTOR_ID to doctorId
+            )
+            firestore.collection(FirestoreConstants.USERS).document(patientUid).set(userData).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** Start phone verification (sends SMS or completes instantly). Requires Activity for reCAPTCHA. */
+    suspend fun startPhoneVerification(phoneNumber: String, activity: Activity): Result<PhoneVerificationResult> =
+        suspendCancellableCoroutine { cont ->
+            val callback = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    if (cont.isActive) cont.resume(Result.success(PhoneVerificationResult.VerificationCompleted(credential)))
+                }
+                override fun onVerificationFailed(e: FirebaseException) {
+                    if (cont.isActive) cont.resume(Result.failure(e))
+                }
+                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                    if (cont.isActive) cont.resume(Result.success(PhoneVerificationResult.CodeSent(verificationId)))
+                }
+            }
+            val options = PhoneAuthOptions.newBuilder(auth)
+                .setPhoneNumber(phoneNumber)
+                .setTimeout(60L, TimeUnit.SECONDS)
+                .setActivity(activity)
+                .setCallbacks(callback)
+                .build()
+            PhoneAuthProvider.verifyPhoneNumber(options)
+        }
+
+    /** Sign up with SMS code and write Firestore profile. */
+    suspend fun signUpWithPhoneCode(verificationId: String, code: String, role: UserRole, displayName: String?): Result<FirebaseUser> {
+        val credential = PhoneAuthProvider.getCredential(verificationId, code)
+        return signInWithPhoneCredentialAndCreateProfile(credential, role, displayName)
+    }
+
+    /** Sign up with instant verification credential and write Firestore profile. */
+    suspend fun signUpWithPhoneCredential(credential: PhoneAuthCredential, role: UserRole, displayName: String?): Result<FirebaseUser> {
+        return signInWithPhoneCredentialAndCreateProfile(credential, role, displayName)
+    }
+
+    /** Sign in with phone code (for existing users). */
+    suspend fun signInWithPhoneCode(verificationId: String, code: String): Result<FirebaseUser> {
+        return try {
+            val credential = PhoneAuthProvider.getCredential(verificationId, code)
+            val result = auth.signInWithCredential(credential).await()
+            val user = result.user ?: return Result.failure(Exception("User is null"))
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential): Result<FirebaseUser> {
+        return try {
+            val result = auth.signInWithCredential(credential).await()
+            val user = result.user ?: return Result.failure(Exception("User is null"))
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun signInWithPhoneCredentialAndCreateProfile(
+        credential: PhoneAuthCredential,
+        role: UserRole,
+        displayName: String?
+    ): Result<FirebaseUser> {
+        return try {
+            val result = auth.signInWithCredential(credential).await()
+            val user = result.user ?: return Result.failure(Exception("User is null"))
+            val phone = user.phoneNumber ?: return Result.failure(Exception("Phone number is null"))
+            val firestoreUser = hashMapOf(
+                FirestoreConstants.PHONE to phone,
+                FirestoreConstants.ROLE to role.name,
+                FirestoreConstants.DISPLAY_NAME to (displayName ?: phone),
+                FirestoreConstants.DOCTOR_ID to null
+            )
+            firestore.collection(FirestoreConstants.USERS).document(user.uid).set(firestoreUser).await()
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -94,11 +211,11 @@ class AuthRepository {
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toUser(): User? {
     val id = id
-    val email = getString(FirestoreConstants.EMAIL) ?: return null
+    val phone = getString(FirestoreConstants.PHONE) ?: return null
     val role = UserRole.fromString(getString(FirestoreConstants.ROLE)) ?: return null
     return User(
         id = id,
-        email = email,
+        phone = phone,
         role = role,
         displayName = getString(FirestoreConstants.DISPLAY_NAME),
         doctorId = getString(FirestoreConstants.DOCTOR_ID),

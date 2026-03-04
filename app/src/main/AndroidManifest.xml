@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -12,10 +13,20 @@
         android:roundIcon="@android:drawable/sym_def_app_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.PatientApp">
+
+        <!-- Defer Firebase Analytics collection until after startup -->
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="true" />
+        <!-- Disable Measurement auto-init ContentProvider to speed up cold start -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.PatientApp">
+            android:theme="@style/Theme.PatientApp.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
