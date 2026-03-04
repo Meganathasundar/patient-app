@@ -110,6 +110,26 @@ private fun FormHistoryCard(form: DailyForm) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+            Text(
+                text = "Other symptoms: ${if (form.hasOtherSymptoms) "Yes" else "No"}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (form.hasOtherSymptoms && form.otherSymptomsDescription.isNotBlank()) {
+                Text(
+                    text = "Details: ${form.otherSymptomsDescription}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Text(
+                text = "Took medicine: ${if (form.tookMedicine) "Yes" else "No"}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (form.tookMedicine && form.medicineDescription.isNotBlank()) {
+                Text(
+                    text = "Medicine: ${form.medicineDescription}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

@@ -12,6 +12,10 @@ data class DailyForm(
     val bodyTemperature: Double = 0.0,
     val symptomsDescription: String = "",
     val painLevel: Int = 0,
+    val hasOtherSymptoms: Boolean = false,
+    val otherSymptomsDescription: String = "",
+    val tookMedicine: Boolean = false,
+    val medicineDescription: String = "",
     @ServerTimestamp
     val submittedAt: Timestamp? = null
 ) {
