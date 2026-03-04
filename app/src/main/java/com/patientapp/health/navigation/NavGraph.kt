@@ -55,8 +55,12 @@ fun NavGraph(
                 LoginScreen(
                     uiState = authState,
                     onSignIn = { phone, password -> authViewModel.signIn(phone, password) },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignInWithPhoneCode = { id, code -> authViewModel.signInWithPhoneCode(id, code) },
+                    onSignInWithPhoneCredential = { authViewModel.signInWithStoredPhoneCredential() },
                     onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -72,8 +76,14 @@ fun NavGraph(
                     onSignUp = { phone, password, name ->
                         authViewModel.signUp(phone, password, name)
                     },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignUpWithPhoneCode = { id, code, role, name ->
+                        authViewModel.signUpWithPhoneCode(id, code, role, name)
+                    },
+                    onSignUpWithPhoneCredential = { role, name -> authViewModel.signUpWithPhoneCredential(role, name) },
                     onNavigateToLogin = { navController.popBackStack() },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -146,7 +156,6 @@ fun NavGraph(
         }
     }
 
-    // Navigate to role home when logged in
     androidx.compose.runtime.LaunchedEffect(authState.isLoggedIn, authState.currentUser) {
         if (authState.isLoggedIn && authState.currentUser != null) {
             val user = authState.currentUser!!

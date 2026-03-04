@@ -7,4 +7,6 @@ data class User(
     val displayName: String? = null,
     val doctorId: String? = null,
     val fcmToken: String? = null
-)
+) {
+    val identifier: String get() = phone
+}

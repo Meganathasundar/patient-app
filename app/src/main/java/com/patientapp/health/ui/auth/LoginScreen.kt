@@ -1,5 +1,6 @@
 package com.patientapp.health.ui.auth
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,8 +35,12 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     uiState: AuthUiState,
     onSignIn: (phone: String, password: String) -> Unit,
+    onSendPhoneCode: (phoneNumber: String, activity: Activity) -> Unit,
+    onSignInWithPhoneCode: (verificationId: String, code: String) -> Unit,
+    onSignInWithPhoneCredential: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onClearError: () -> Unit,
+    onClearPhoneState: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     var phone by remember { mutableStateOf("") }
@@ -95,16 +100,19 @@ fun LoginScreen(
                 Button(
                     onClick = { onSignIn(phone, password) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && phone.isNotBlank() && password.isNotBlank()
                 ) {
-                    Text(if (uiState.isLoading) "Signing in…" else "Sign in")
+                    Text(if (uiState.isLoading) "Signing in\u2026" else "Sign in")
                 }
                 Text(
                     text = "Patients: your default password is your phone number.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = onNavigateToRegister) {
+                TextButton(onClick = {
+                    onClearPhoneState()
+                    onNavigateToRegister()
+                }) {
                     Text("Doctor? Register here")
                 }
             }

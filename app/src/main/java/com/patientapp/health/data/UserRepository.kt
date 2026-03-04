@@ -6,11 +6,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-/**
- * Firestore repository for user/patient data.
- * - List patients by doctor (real-time).
- * - Update FCM token for a user.
- */
 class UserRepository {
 
     private val firestore = FirebaseFirestore.getInstance()

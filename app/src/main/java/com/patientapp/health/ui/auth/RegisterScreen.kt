@@ -1,5 +1,6 @@
 package com.patientapp.health.ui.auth
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,13 +30,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.patientapp.health.data.UserRole
 
 @Composable
 fun RegisterScreen(
     uiState: AuthUiState,
     onSignUp: (phone: String, password: String, displayName: String?) -> Unit,
+    onSendPhoneCode: (phoneNumber: String, activity: Activity) -> Unit,
+    onSignUpWithPhoneCode: (verificationId: String, code: String, role: UserRole, displayName: String?) -> Unit,
+    onSignUpWithPhoneCredential: (role: UserRole, displayName: String?) -> Unit,
     onNavigateToLogin: () -> Unit,
     onClearError: () -> Unit,
+    onClearPhoneState: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     var phone by remember { mutableStateOf("") }
@@ -105,16 +111,19 @@ fun RegisterScreen(
                         onSignUp(phone, password, displayName.ifBlank { null })
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && phone.isNotBlank() && password.isNotBlank()
                 ) {
-                    Text(if (uiState.isLoading) "Creating…" else "Register")
+                    Text(if (uiState.isLoading) "Creating\u2026" else "Register")
                 }
                 Text(
                     text = "Patients don\u2019t need to register. Your doctor will create your account.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = onNavigateToLogin) {
+                TextButton(onClick = {
+                    onClearPhoneState()
+                    onNavigateToLogin()
+                }) {
                     Text("Already have an account? Sign in")
                 }
             }
