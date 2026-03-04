@@ -129,11 +129,11 @@ private fun PatientCard(
             Spacer(modifier = Modifier.padding(horizontal = 12.dp))
             Column {
                 Text(
-                    text = patient.displayName ?: patient.email,
+                    text = patient.displayName ?: patient.phone,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = patient.email,
+                    text = patient.phone,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

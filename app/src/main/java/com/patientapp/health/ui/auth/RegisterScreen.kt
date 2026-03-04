@@ -2,7 +2,6 @@ package com.patientapp.health.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +15,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,20 +29,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.patientapp.health.data.UserRole
 
 @Composable
 fun RegisterScreen(
     uiState: AuthUiState,
-    onSignUp: (email: String, password: String, role: UserRole, displayName: String?) -> Unit,
+    onSignUp: (phone: String, password: String, displayName: String?) -> Unit,
     onNavigateToLogin: () -> Unit,
     onClearError: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf(UserRole.DOCTOR) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
@@ -62,7 +58,7 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Create account",
+            text = "Doctor Registration",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary
         )
@@ -76,25 +72,13 @@ fun RegisterScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("I am registering as", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = role == UserRole.DOCTOR,
-                        onClick = { role = UserRole.DOCTOR }
-                    )
-                    Text("Doctor")
-                    Spacer(modifier = Modifier.padding(horizontal = 16.dp))
-                    RadioButton(
-                        selected = role == UserRole.PATIENT,
-                        onClick = { role = UserRole.PATIENT }
-                    )
-                    Text("Patient (must be added by doctor first)")
-                }
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone number") },
+                    placeholder = { Text("+1234567890") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 )
@@ -108,30 +92,28 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 )
-                if (role == UserRole.DOCTOR) {
-                    OutlinedTextField(
-                        value = displayName,
-                        onValueChange = { displayName = it },
-                        label = { Text("Display name (optional)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isLoading
-                    )
-                }
+                OutlinedTextField(
+                    value = displayName,
+                    onValueChange = { displayName = it },
+                    label = { Text("Display name (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading
+                )
                 Button(
                     onClick = {
-                        onSignUp(
-                            email,
-                            password,
-                            role,
-                            displayName.ifBlank { null }
-                        )
+                        onSignUp(phone, password, displayName.ifBlank { null })
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 ) {
                     Text(if (uiState.isLoading) "Creating…" else "Register")
                 }
+                Text(
+                    text = "Patients don\u2019t need to register. Your doctor will create your account.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 TextButton(onClick = onNavigateToLogin) {
                     Text("Already have an account? Sign in")
                 }

@@ -17,7 +17,7 @@ import com.patientapp.health.navigation.NavGraph
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val authRepository = AuthRepository()
+        val authRepository = AuthRepository(applicationContext)
         val userRepository = UserRepository()
         val dailyFormRepository = DailyFormRepository()
         setContent {

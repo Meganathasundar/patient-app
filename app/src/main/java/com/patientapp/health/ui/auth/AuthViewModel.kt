@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.patientapp.health.data.AuthRepository
 import com.patientapp.health.data.User
-import com.patientapp.health.data.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,10 +43,10 @@ class AuthViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun signIn(email: String, password: String) {
+    fun signIn(phone: String, password: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            authRepository.signIn(email, password)
+            authRepository.signIn(phone, password)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                 }
@@ -60,10 +59,10 @@ class AuthViewModel(
         }
     }
 
-    fun signUp(email: String, password: String, role: UserRole, displayName: String?) {
+    fun signUp(phone: String, password: String, displayName: String?) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            authRepository.signUp(email, password, role, displayName)
+            authRepository.signUp(phone, password, displayName)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                 }

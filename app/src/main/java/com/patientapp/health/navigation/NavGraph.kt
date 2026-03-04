@@ -54,7 +54,7 @@ fun NavGraph(
             ) {
                 LoginScreen(
                     uiState = authState,
-                    onSignIn = { email, password -> authViewModel.signIn(email, password) },
+                    onSignIn = { phone, password -> authViewModel.signIn(phone, password) },
                     onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                     onClearError = { authViewModel.clearError() },
                     snackbarHostState = snackbarHostState
@@ -69,8 +69,8 @@ fun NavGraph(
             ) {
                 RegisterScreen(
                     uiState = authState,
-                    onSignUp = { email, pass, role, name ->
-                        authViewModel.signUp(email, pass, role, name)
+                    onSignUp = { phone, password, name ->
+                        authViewModel.signUp(phone, password, name)
                     },
                     onNavigateToLogin = { navController.popBackStack() },
                     onClearError = { authViewModel.clearError() },
@@ -82,7 +82,7 @@ fun NavGraph(
         composable(Screen.DoctorHome.route) {
             val doctorId = authState.currentUser?.id ?: return@composable
             val doctorViewModel = remember(doctorId) {
-                DoctorViewModel(doctorId, userRepository, dailyFormRepository)
+                DoctorViewModel(doctorId, authRepository, userRepository, dailyFormRepository)
             }
             val doctorState by doctorViewModel.uiState.collectAsState()
             var showAddDialog by remember { mutableStateOf(false) }
@@ -94,8 +94,8 @@ fun NavGraph(
                         showAddDialog = false
                         doctorViewModel.clearAddPatientState()
                     },
-                    onConfirm = { email, displayName ->
-                        doctorViewModel.addPatient(email, displayName)
+                    onConfirm = { phone, displayName ->
+                        doctorViewModel.addPatient(phone, displayName)
                     },
                     error = doctorState.addPatientError,
                     success = doctorState.addPatientSuccess

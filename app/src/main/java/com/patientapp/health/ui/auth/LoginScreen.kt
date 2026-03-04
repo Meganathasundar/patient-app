@@ -33,12 +33,12 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LoginScreen(
     uiState: AuthUiState,
-    onSignIn: (email: String, password: String) -> Unit,
+    onSignIn: (phone: String, password: String) -> Unit,
     onNavigateToRegister: () -> Unit,
     onClearError: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.error) {
@@ -73,10 +73,12 @@ fun LoginScreen(
             ) {
                 Text("Sign in", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone number") },
+                    placeholder = { Text("+1234567890") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 )
@@ -91,14 +93,19 @@ fun LoginScreen(
                     enabled = !uiState.isLoading
                 )
                 Button(
-                    onClick = { onSignIn(email, password) },
+                    onClick = { onSignIn(phone, password) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 ) {
                     Text(if (uiState.isLoading) "Signing in…" else "Sign in")
                 }
+                Text(
+                    text = "Patients: your default password is your phone number.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 TextButton(onClick = onNavigateToRegister) {
-                    Text("Don't have an account? Register")
+                    Text("Doctor? Register here")
                 }
             }
         }

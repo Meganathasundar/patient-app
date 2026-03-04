@@ -2,6 +2,7 @@ package com.patientapp.health.ui.doctor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.patientapp.health.data.AuthRepository
 import com.patientapp.health.data.DailyForm
 import com.patientapp.health.data.DailyFormRepository
 import com.patientapp.health.data.User
@@ -23,6 +24,7 @@ data class DoctorUiState(
 
 class DoctorViewModel(
     private val doctorId: String,
+    private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val dailyFormRepository: DailyFormRepository
 ) : ViewModel() {
@@ -47,10 +49,10 @@ class DoctorViewModel(
         }.launchIn(viewModelScope)
     }
 
-    fun addPatient(email: String, displayName: String) {
+    fun addPatient(phone: String, displayName: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(addPatientError = null, addPatientSuccess = false)
-            userRepository.addPatient(doctorId, email, displayName)
+            authRepository.createPatientAccount(phone, displayName, doctorId)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(addPatientSuccess = true)
                 }

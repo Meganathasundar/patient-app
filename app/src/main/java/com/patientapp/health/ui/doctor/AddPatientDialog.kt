@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,17 +17,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 @Composable
 fun AddPatientDialog(
     onDismiss: () -> Unit,
-    onConfirm: (email: String, displayName: String) -> Unit,
+    onConfirm: (phone: String, displayName: String) -> Unit,
     error: String?,
     success: Boolean
 ) {
-    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
 
     LaunchedEffect(success) {
@@ -53,16 +55,17 @@ fun AddPatientDialog(
                 }
                 if (success) {
                     Text(
-                        text = "Patient added. They can now sign up in the app with this email.",
+                        text = "Patient added. They can sign in with their phone number as both login and password.",
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Patient email") },
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Patient phone number") },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -77,7 +80,7 @@ fun AddPatientDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm(email.trim(), displayName.trim().ifBlank { email.substringBefore("@") })
+                    onConfirm(phone.trim(), displayName.trim().ifBlank { phone })
                 }
             ) {
                 Text("Add")

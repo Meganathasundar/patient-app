@@ -38,7 +38,7 @@ fun PatientFormHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(patient.displayName ?: patient.email) },
+                title = { Text(patient.displayName ?: patient.phone) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
