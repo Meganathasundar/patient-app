@@ -25,8 +25,8 @@ sealed class PhoneVerificationResult {
 
 class AuthRepository(private val appContext: Context) {
 
-    private val auth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
+    private val auth by lazy { FirebaseAuth.getInstance() }
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
 
     val currentUser: FirebaseUser?
         get() = auth.currentUser

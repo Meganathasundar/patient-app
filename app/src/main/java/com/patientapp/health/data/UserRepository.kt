@@ -8,7 +8,7 @@ import kotlinx.coroutines.tasks.await
 
 class UserRepository {
 
-    private val firestore = FirebaseFirestore.getInstance()
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
 
     fun getPatientsByDoctor(doctorId: String): Flow<List<User>> = callbackFlow {
         val listener = firestore.collection(FirestoreConstants.USERS)

@@ -14,7 +14,7 @@ import kotlinx.coroutines.tasks.await
  */
 class DailyFormRepository {
 
-    private val firestore = FirebaseFirestore.getInstance()
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
 
     suspend fun submitForm(patientId: String, doctorId: String, temperature: Double, symptoms: String, painLevel: Int): Result<Unit> {
         return try {

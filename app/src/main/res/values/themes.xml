@@ -6,4 +6,10 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:colorPrimary">@color/primary</item>
     </style>
+
+    <style name="Theme.PatientApp.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:drawable/sym_def_app_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.PatientApp</item>
+    </style>
 </resources>
