@@ -45,14 +45,26 @@ class PatientViewModel(
             .launchIn(viewModelScope)
     }
 
-    fun submitForm(temperature: Double, symptoms: String, painLevel: Int) {
+    fun submitForm(
+        temperature: Double,
+        symptoms: String,
+        painLevel: Int,
+        hasOtherSymptoms: Boolean,
+        otherSymptomsDescription: String,
+        tookMedicine: Boolean,
+        medicineDescription: String
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isSubmitting = true,
                 submitError = null,
                 submitSuccess = false
             )
-            dailyFormRepository.submitForm(patientId, doctorId, temperature, symptoms, painLevel)
+            dailyFormRepository.submitForm(
+                patientId, doctorId, temperature, symptoms, painLevel,
+                hasOtherSymptoms, otherSymptomsDescription,
+                tookMedicine, medicineDescription
+            )
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isSubmitting = false,

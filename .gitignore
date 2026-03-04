@@ -9,6 +9,7 @@
 /captures
 .externalNativeBuild
 .cxx
+.kotlin/
 
 # Firebase
 app/google-services.json

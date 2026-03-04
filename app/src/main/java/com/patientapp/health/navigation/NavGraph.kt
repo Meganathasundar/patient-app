@@ -144,7 +144,9 @@ fun NavGraph(
 
             DailyFormScreen(
                 uiState = patientState,
-                onSubmit = { t, s, p -> patientViewModel.submitForm(t, s, p) },
+                onSubmit = { t, s, p, hos, osd, tm, md ->
+                    patientViewModel.submitForm(t, s, p, hos, osd, tm, md)
+                },
                 onClearSubmitState = { patientViewModel.clearSubmitState() },
                 onSignOut = {
                     authViewModel.signOut()

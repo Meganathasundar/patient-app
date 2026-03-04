@@ -16,7 +16,17 @@ class DailyFormRepository {
 
     private val firestore by lazy { FirebaseFirestore.getInstance() }
 
-    suspend fun submitForm(patientId: String, doctorId: String, temperature: Double, symptoms: String, painLevel: Int): Result<Unit> {
+    suspend fun submitForm(
+        patientId: String,
+        doctorId: String,
+        temperature: Double,
+        symptoms: String,
+        painLevel: Int,
+        hasOtherSymptoms: Boolean,
+        otherSymptomsDescription: String,
+        tookMedicine: Boolean,
+        medicineDescription: String
+    ): Result<Unit> {
         return try {
             val data = hashMapOf(
                 "patientId" to patientId,
@@ -24,6 +34,10 @@ class DailyFormRepository {
                 "bodyTemperature" to temperature,
                 "symptomsDescription" to symptoms,
                 "painLevel" to painLevel,
+                "hasOtherSymptoms" to hasOtherSymptoms,
+                "otherSymptomsDescription" to otherSymptomsDescription,
+                "tookMedicine" to tookMedicine,
+                "medicineDescription" to medicineDescription,
                 "submittedAt" to Timestamp.now()
             )
             firestore.collection(DailyForm.COLLECTION).add(data).await()
@@ -73,6 +87,10 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toDailyForm(): DailyF
             bodyTemperature = (get("bodyTemperature") as? Number)?.toDouble() ?: 0.0,
             symptomsDescription = getString("symptomsDescription") ?: "",
             painLevel = (get("painLevel") as? Number)?.toInt() ?: 0,
+            hasOtherSymptoms = getBoolean("hasOtherSymptoms") ?: false,
+            otherSymptomsDescription = getString("otherSymptomsDescription") ?: "",
+            tookMedicine = getBoolean("tookMedicine") ?: false,
+            medicineDescription = getString("medicineDescription") ?: "",
             submittedAt = getTimestamp("submittedAt")
         )
     } catch (e: Exception) {
