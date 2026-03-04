@@ -123,3 +123,12 @@ firebase deploy --only functions
 2. **Patient:** Signs up with the **same email** the doctor used; their Firestore `users` document is created with `doctorId`. They can then submit the daily form; the app updates their FCM token for the 5 PM reminder.
 3. **5 PM:** Cloud Function runs, loads all patients’ FCM tokens from Firestore, and sends the “Daily Health Form” notification.
 4. **Doctor:** Opens the app, sees the patient list, taps a patient, and sees form history in real time via Firestore listeners.
+
+## Make executable apk
+./gradlew assembleRelease
+
+## Make executable debug apk 
+./gradlew assembleDebug
+
+## APK will be at below location
+app/build/outputs/apk/debug/app-debug.apk
