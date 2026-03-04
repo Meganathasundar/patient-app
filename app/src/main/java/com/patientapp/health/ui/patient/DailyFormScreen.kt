@@ -238,7 +238,7 @@ fun DailyFormScreen(
                     }
                 }
 
-                for (level in 10 downTo 0) {
+                for (level in 0..10) {
                     item(key = "vas_$level") {
                         VasRow(
                             level = level,
