@@ -1,5 +1,6 @@
 package com.patientapp.health.ui.auth
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -34,12 +36,23 @@ import androidx.compose.ui.unit.dp
 fun LoginScreen(
     uiState: AuthUiState,
     onSignIn: (email: String, password: String) -> Unit,
+    onSendPhoneCode: (phoneNumber: String, activity: Activity) -> Unit,
+    onSignInWithPhoneCode: (verificationId: String, code: String) -> Unit,
+    onSignInWithPhoneCredential: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onClearError: () -> Unit,
+    onClearPhoneState: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    var email by remember { mutableStateOf("") }
+    var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var verificationCode by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    val isEmail = emailOrPhone.contains("@")
+    val phoneCodeSent = uiState.phoneVerificationId != null
+    val phoneInstantReady = uiState.phoneInstantCredentialReady
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
@@ -73,31 +86,70 @@ fun LoginScreen(
             ) {
                 Text("Sign in", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
+                    value = emailOrPhone,
+                    onValueChange = { emailOrPhone = it },
+                    label = { Text("Email or phone number") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    keyboardOptions = KeyboardOptions(keyboardType = if (isEmail) KeyboardType.Email else KeyboardType.Phone)
                 )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
-                )
+                if (isEmail) {
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isLoading
+                    )
+                } else {
+                    if (!phoneCodeSent && !phoneInstantReady) {
+                        Button(
+                            onClick = {
+                                if (activity != null) onSendPhoneCode(emailOrPhone.trim(), activity)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading && emailOrPhone.isNotBlank()
+                        ) {
+                            Text(if (uiState.isLoading) "Sending…" else "Send verification code")
+                        }
+                    }
+                    if (phoneCodeSent) {
+                        OutlinedTextField(
+                            value = verificationCode,
+                            onValueChange = { verificationCode = it },
+                            label = { Text("Verification code") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
+                val canSignInWithEmail = isEmail && emailOrPhone.isNotBlank() && password.isNotBlank()
+                val canSignInWithPhone = !isEmail && (phoneCodeSent && verificationCode.isNotBlank() || phoneInstantReady)
                 Button(
-                    onClick = { onSignIn(email, password) },
+                    onClick = {
+                        when {
+                            isEmail -> onSignIn(emailOrPhone, password)
+                            phoneInstantReady -> onSignInWithPhoneCredential()
+                            else -> uiState.phoneVerificationId?.let { id ->
+                                onSignInWithPhoneCode(id, verificationCode)
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && (canSignInWithEmail || canSignInWithPhone)
                 ) {
                     Text(if (uiState.isLoading) "Signing in…" else "Sign in")
                 }
-                TextButton(onClick = onNavigateToRegister) {
+                TextButton(onClick = {
+                    onClearPhoneState()
+                    onNavigateToRegister()
+                }) {
                     Text("Don't have an account? Register")
                 }
             }

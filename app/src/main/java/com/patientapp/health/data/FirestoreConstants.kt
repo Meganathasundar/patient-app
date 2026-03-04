@@ -8,4 +8,5 @@ object FirestoreConstants {
     const val EMAIL = "email"
     const val DISPLAY_NAME = "displayName"
     const val FCM_TOKEN = "fcmToken"
+    const val PHONE = "phone"
 }

@@ -1,5 +1,6 @@
 package com.patientapp.health.ui.auth
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -37,14 +39,25 @@ import com.patientapp.health.data.UserRole
 fun RegisterScreen(
     uiState: AuthUiState,
     onSignUp: (email: String, password: String, role: UserRole, displayName: String?) -> Unit,
+    onSendPhoneCode: (phoneNumber: String, activity: Activity) -> Unit,
+    onSignUpWithPhoneCode: (verificationId: String, code: String, role: UserRole, displayName: String?) -> Unit,
+    onSignUpWithPhoneCredential: (role: UserRole, displayName: String?) -> Unit,
     onNavigateToLogin: () -> Unit,
     onClearError: () -> Unit,
+    onClearPhoneState: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    var email by remember { mutableStateOf("") }
+    var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var verificationCode by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(UserRole.DOCTOR) }
+    val context = LocalContext.current
+    val activity = context as? Activity
+
+    val isEmail = emailOrPhone.contains("@")
+    val phoneCodeSent = uiState.phoneVerificationId != null
+    val phoneInstantReady = uiState.phoneInstantCredentialReady
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { msg ->
@@ -91,23 +104,49 @@ fun RegisterScreen(
                     Text("Patient (must be added by doctor first)")
                 }
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
+                    value = emailOrPhone,
+                    onValueChange = { emailOrPhone = it },
+                    label = { Text("Email or phone number") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading,
+                    keyboardOptions = KeyboardOptions(keyboardType = if (isEmail) KeyboardType.Email else KeyboardType.Phone)
                 )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
-                )
+                if (isEmail) {
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isLoading
+                    )
+                } else {
+                    if (!phoneCodeSent && !phoneInstantReady) {
+                        Button(
+                            onClick = {
+                                if (activity != null) onSendPhoneCode(emailOrPhone.trim(), activity)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading && emailOrPhone.isNotBlank()
+                        ) {
+                            Text(if (uiState.isLoading) "Sending…" else "Send verification code")
+                        }
+                    }
+                    if (phoneCodeSent) {
+                        OutlinedTextField(
+                            value = verificationCode,
+                            onValueChange = { verificationCode = it },
+                            label = { Text("Verification code") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                }
                 if (role == UserRole.DOCTOR) {
                     OutlinedTextField(
                         value = displayName,
@@ -118,21 +157,32 @@ fun RegisterScreen(
                         enabled = !uiState.isLoading
                     )
                 }
+                val canRegisterWithEmail = isEmail && emailOrPhone.isNotBlank() && password.isNotBlank()
+                val canRegisterWithPhone = !isEmail && (phoneCodeSent && verificationCode.isNotBlank() || phoneInstantReady)
                 Button(
                     onClick = {
-                        onSignUp(
-                            email,
-                            password,
-                            role,
-                            displayName.ifBlank { null }
-                        )
+                        when {
+                            isEmail -> onSignUp(
+                                emailOrPhone,
+                                password,
+                                role,
+                                displayName.ifBlank { null }
+                            )
+                            phoneInstantReady -> onSignUpWithPhoneCredential(role, displayName.ifBlank { null })
+                            else -> uiState.phoneVerificationId?.let { id ->
+                                onSignUpWithPhoneCode(id, verificationCode, role, displayName.ifBlank { null })
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading
+                    enabled = !uiState.isLoading && (canRegisterWithEmail || canRegisterWithPhone)
                 ) {
                     Text(if (uiState.isLoading) "Creating…" else "Register")
                 }
-                TextButton(onClick = onNavigateToLogin) {
+                TextButton(onClick = {
+                    onClearPhoneState()
+                    onNavigateToLogin()
+                }) {
                     Text("Already have an account? Sign in")
                 }
             }

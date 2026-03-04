@@ -16,15 +16,17 @@ class UserRepository {
 
     private val firestore = FirebaseFirestore.getInstance()
 
-    /** Doctor adds a patient by email. Patient must then sign up in the app with this email to claim the account. */
-    suspend fun addPatient(doctorId: String, email: String, displayName: String): Result<Unit> {
+    /** Doctor adds a patient by email or phone. Patient must then sign up in the app with the same email or phone to claim the account. */
+    suspend fun addPatient(doctorId: String, emailOrPhone: String, displayName: String): Result<Unit> {
         return try {
-            val docId = email.replace(".", "_")
-            val data = hashMapOf(
-                FirestoreConstants.EMAIL to email,
+            val isEmail = emailOrPhone.contains("@")
+            val docId = if (isEmail) emailOrPhone.replace(".", "_") else emailOrPhone.filter { it.isDigit() }
+            val data = hashMapOf<String, Any?>(
                 FirestoreConstants.DISPLAY_NAME to displayName,
                 FirestoreConstants.DOCTOR_ID to doctorId
-            )
+            ).apply {
+                if (isEmail) put(FirestoreConstants.EMAIL, emailOrPhone) else put(FirestoreConstants.PHONE, emailOrPhone)
+            }
             firestore.collection(FirestoreConstants.PENDING_PATIENTS).document(docId).set(data).await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -55,11 +57,14 @@ class UserRepository {
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toUser(): User? {
     val id = id
-    val email = getString(FirestoreConstants.EMAIL) ?: return null
+    val email = getString(FirestoreConstants.EMAIL)
+    val phone = getString(FirestoreConstants.PHONE)
+    if (email == null && phone == null) return null
     val role = UserRole.fromString(getString(FirestoreConstants.ROLE)) ?: return null
     return User(
         id = id,
         email = email,
+        phone = phone,
         role = role,
         displayName = getString(FirestoreConstants.DISPLAY_NAME),
         doctorId = getString(FirestoreConstants.DOCTOR_ID),

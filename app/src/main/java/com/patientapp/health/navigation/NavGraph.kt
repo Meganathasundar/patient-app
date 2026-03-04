@@ -55,8 +55,12 @@ fun NavGraph(
                 LoginScreen(
                     uiState = authState,
                     onSignIn = { email, password -> authViewModel.signIn(email, password) },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignInWithPhoneCode = { id, code -> authViewModel.signInWithPhoneCode(id, code) },
+                    onSignInWithPhoneCredential = { authViewModel.signInWithStoredPhoneCredential() },
                     onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -72,8 +76,14 @@ fun NavGraph(
                     onSignUp = { email, pass, role, name ->
                         authViewModel.signUp(email, pass, role, name)
                     },
+                    onSendPhoneCode = { phone, activity -> authViewModel.startPhoneVerification(phone, activity) },
+                    onSignUpWithPhoneCode = { id, code, role, name ->
+                        authViewModel.signUpWithPhoneCode(id, code, role, name)
+                    },
+                    onSignUpWithPhoneCredential = { role, name -> authViewModel.signUpWithPhoneCredential(role, name) },
                     onNavigateToLogin = { navController.popBackStack() },
                     onClearError = { authViewModel.clearError() },
+                    onClearPhoneState = { authViewModel.clearPhoneVerificationState() },
                     snackbarHostState = snackbarHostState
                 )
             }

@@ -53,7 +53,7 @@ fun AddPatientDialog(
                 }
                 if (success) {
                     Text(
-                        text = "Patient added. They can now sign up in the app with this email.",
+                        text = "Patient added. They can now sign up in the app with this email or phone number.",
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -61,7 +61,7 @@ fun AddPatientDialog(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Patient email") },
+                    label = { Text("Patient email or phone number") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -77,7 +77,12 @@ fun AddPatientDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm(email.trim(), displayName.trim().ifBlank { email.substringBefore("@") })
+                    val identifier = email.trim()
+                    val defaultName = when {
+                        identifier.contains("@") -> identifier.substringBefore("@")
+                        else -> identifier
+                    }
+                    onConfirm(identifier, displayName.trim().ifBlank { defaultName })
                 }
             ) {
                 Text("Add")
