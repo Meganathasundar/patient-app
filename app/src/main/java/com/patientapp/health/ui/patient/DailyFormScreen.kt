@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,10 +19,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 private val vasColors = listOf(
     Color(0xFF4CAF50), // 0 - green
@@ -99,13 +102,15 @@ fun DailyFormScreen(
     onSignOut: () -> Unit
 ) {
     var showSurvey by remember { mutableStateOf(false) }
-    var temperature by remember { mutableStateOf("") }
-    var symptoms by remember { mutableStateOf("") }
     var painLevel by remember { mutableIntStateOf(-1) }
     var hasOtherSymptoms by remember { mutableStateOf<Boolean?>(null) }
     var otherSymptomsText by remember { mutableStateOf("") }
     var tookMedicine by remember { mutableStateOf<Boolean?>(null) }
     var medicineText by remember { mutableStateOf("") }
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -119,352 +124,321 @@ fun DailyFormScreen(
             )
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding),
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            state = listState
         ) {
             if (uiState.submitSuccess) {
-                Card(
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Survey submitted successfully.",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                item(key = "success") {
+                    Card(
+                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Survey submitted successfully.",
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
-                TextButton(onClick = {
-                    onClearSubmitState()
-                    showSurvey = false
-                    temperature = ""
-                    symptoms = ""
-                    painLevel = -1
-                    hasOtherSymptoms = null
-                    otherSymptomsText = ""
-                    tookMedicine = null
-                    medicineText = ""
-                }) {
-                    Text("Dismiss")
+                item(key = "dismiss") {
+                    TextButton(onClick = {
+                        onClearSubmitState()
+                        showSurvey = false
+                        painLevel = -1
+                        hasOtherSymptoms = null
+                        otherSymptomsText = ""
+                        tookMedicine = null
+                        medicineText = ""
+                        validationError = null
+                    }) {
+                        Text("Dismiss")
+                    }
                 }
             }
             if (uiState.submitError != null) {
-                Card(
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = uiState.submitError,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                item(key = "error") {
+                    Card(
+                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = uiState.submitError,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
                 }
             }
 
             if (!showSurvey && !uiState.submitSuccess) {
-                Spacer(modifier = Modifier.height(80.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Daily Health Survey",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Submit your daily health information\nto keep your doctor informed.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = { showSurvey = true },
-                        modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
+                item(key = "landing") {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+                item(key = "landing_content") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Submit Survey",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "Daily Health Survey",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Submit your daily health information\nto keep your doctor informed.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Button(
+                            onClick = { showSurvey = true },
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                "Submit Survey",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                 }
             }
 
             if (showSurvey && !uiState.submitSuccess) {
-                SurveyContent(
-                    temperature = temperature,
-                    onTemperatureChange = { temperature = it.filter { c -> c.isDigit() || c == '.' } },
-                    symptoms = symptoms,
-                    onSymptomsChange = { symptoms = it },
-                    painLevel = painLevel,
-                    onPainLevelChange = { painLevel = it },
-                    hasOtherSymptoms = hasOtherSymptoms,
-                    onOtherSymptomsChange = { hasOtherSymptoms = it },
-                    otherSymptomsText = otherSymptomsText,
-                    onOtherSymptomsTextChange = { otherSymptomsText = it },
-                    tookMedicine = tookMedicine,
-                    onTookMedicineChange = { tookMedicine = it },
-                    medicineText = medicineText,
-                    onMedicineTextChange = { medicineText = it },
-                    isSubmitting = uiState.isSubmitting,
-                    onSubmit = {
-                        val temp = temperature.toDoubleOrNull() ?: 0.0
-                        if (temp in 30.0..45.0 && painLevel >= 0) {
-                            onSubmit(
-                                temp,
-                                symptoms,
-                                painLevel,
-                                hasOtherSymptoms == true,
-                                if (hasOtherSymptoms == true) otherSymptomsText else "",
-                                tookMedicine == true,
-                                if (tookMedicine == true) medicineText else ""
-                            )
-                        }
-                    },
-                    onCancel = { showSurvey = false }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SurveyContent(
-    temperature: String,
-    onTemperatureChange: (String) -> Unit,
-    symptoms: String,
-    onSymptomsChange: (String) -> Unit,
-    painLevel: Int,
-    onPainLevelChange: (Int) -> Unit,
-    hasOtherSymptoms: Boolean?,
-    onOtherSymptomsChange: (Boolean) -> Unit,
-    otherSymptomsText: String,
-    onOtherSymptomsTextChange: (String) -> Unit,
-    tookMedicine: Boolean?,
-    onTookMedicineChange: (Boolean) -> Unit,
-    medicineText: String,
-    onMedicineTextChange: (String) -> Unit,
-    isSubmitting: Boolean,
-    onSubmit: () -> Unit,
-    onCancel: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            Text(
-                "Daily Health Survey",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            OutlinedTextField(
-                value = temperature,
-                onValueChange = onTemperatureChange,
-                label = { Text("Body temperature (\u00B0C)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSubmitting
-            )
-
-            OutlinedTextField(
-                value = symptoms,
-                onValueChange = onSymptomsChange,
-                label = { Text("Symptoms description") },
-                minLines = 3,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isSubmitting
-            )
-
-            // --- 1. Visual Analog Scale (vertical) ---
-            Column {
-                Text(
-                    text = "Visual Analog Scale",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Select the face that describes how you are feeling",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                VerticalVasScale(
-                    selectedLevel = painLevel,
-                    onLevelSelected = onPainLevelChange,
-                    enabled = !isSubmitting
-                )
-            }
-
-            // --- 2. Other symptoms radio ---
-            YesNoRadioSection(
-                title = "Other symptoms",
-                selected = hasOtherSymptoms,
-                onSelectionChange = onOtherSymptomsChange,
-                enabled = !isSubmitting
-            )
-
-            // --- 3. Text box for other symptoms ---
-            AnimatedVisibility(
-                visible = hasOtherSymptoms == true,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                OutlinedTextField(
-                    value = otherSymptomsText,
-                    onValueChange = onOtherSymptomsTextChange,
-                    label = { Text("Describe other symptoms") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSubmitting
-                )
-            }
-
-            // --- 4. Took medicine for pain radio ---
-            YesNoRadioSection(
-                title = "Took medicine for pain",
-                selected = tookMedicine,
-                onSelectionChange = onTookMedicineChange,
-                enabled = !isSubmitting
-            )
-
-            // --- 5. Text box for medicine ---
-            AnimatedVisibility(
-                visible = tookMedicine == true,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                OutlinedTextField(
-                    value = medicineText,
-                    onValueChange = onMedicineTextChange,
-                    label = { Text("Medicine name / details") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isSubmitting
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TextButton(
-                    onClick = onCancel,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isSubmitting
-                ) {
-                    Text("Cancel")
-                }
-                Button(
-                    onClick = onSubmit,
-                    modifier = Modifier.weight(1f),
-                    enabled = !isSubmitting && painLevel >= 0
-                ) {
-                    Text(if (isSubmitting) "Submitting\u2026" else "Submit")
-                }
-            }
-        }
-    }
-}
-
-// -- Vertical Visual Analog Scale --
-
-@Composable
-private fun VerticalVasScale(
-    selectedLevel: Int,
-    onLevelSelected: (Int) -> Unit,
-    enabled: Boolean
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                RoundedCornerShape(12.dp)
-            )
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        for (level in 10 downTo 0) {
-            val isSelected = level == selectedLevel
-            val bgColor = if (isSelected) vasColors[level].copy(alpha = 0.15f) else Color.Transparent
-            val borderColor = if (isSelected) vasColors[level] else Color.Transparent
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(bgColor)
-                    .border(
-                        width = if (isSelected) 2.dp else 0.dp,
-                        color = borderColor,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .clickable(enabled = enabled) { onLevelSelected(level) }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = level.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = vasColors[level],
-                    modifier = Modifier.width(28.dp),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Box(
-                    modifier = Modifier.size(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    FaceIcon(level = level, color = vasColors[level])
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                val label = vasLabels[level]
-                if (label.isNotEmpty()) {
+                item(key = "survey_title") {
                     Text(
-                        text = label.replace("\n", " "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        "Daily Health Survey",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                if (isSelected) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .background(vasColors[level], CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
+                item(key = "vas_header") {
+                    Column {
                         Text(
-                            "\u2713",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "Visual Analog Scale",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Select the face that describes how you are feeling",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+
+                for (level in 10 downTo 0) {
+                    item(key = "vas_$level") {
+                        VasRow(
+                            level = level,
+                            isSelected = level == painLevel,
+                            enabled = !uiState.isSubmitting,
+                            onSelect = {
+                                painLevel = level
+                                validationError = null
+                            }
+                        )
+                    }
+                }
+
+                item(key = "other_symptoms") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        YesNoRadioSection(
+                            title = "Other symptoms",
+                            selected = hasOtherSymptoms,
+                            onSelectionChange = { hasOtherSymptoms = it },
+                            enabled = !uiState.isSubmitting
+                        )
+                        AnimatedVisibility(
+                            visible = hasOtherSymptoms == true,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
+                        ) {
+                            OutlinedTextField(
+                                value = otherSymptomsText,
+                                onValueChange = { otherSymptomsText = it },
+                                label = { Text("Describe other symptoms") },
+                                minLines = 2,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !uiState.isSubmitting
+                            )
+                        }
+                    }
+                }
+
+                item(key = "medicine") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        YesNoRadioSection(
+                            title = "Took medicine for pain",
+                            selected = tookMedicine,
+                            onSelectionChange = { tookMedicine = it },
+                            enabled = !uiState.isSubmitting
+                        )
+                        AnimatedVisibility(
+                            visible = tookMedicine == true,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
+                        ) {
+                            OutlinedTextField(
+                                value = medicineText,
+                                onValueChange = { medicineText = it },
+                                label = { Text("Medicine name / details") },
+                                minLines = 2,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !uiState.isSubmitting
+                            )
+                        }
+                    }
+                }
+
+                if (validationError != null) {
+                    item(key = "validation_error") {
+                        Card(
+                            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = validationError.orEmpty(),
+                                modifier = Modifier.padding(12.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                item(key = "buttons") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(
+                            onClick = {
+                                showSurvey = false
+                                validationError = null
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isSubmitting
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = {
+                                if (painLevel < 0) {
+                                    validationError = "Please select a pain level"
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(
+                                            listState.layoutInfo.totalItemsCount - 1
+                                        )
+                                    }
+                                } else {
+                                    validationError = null
+                                    onSubmit(
+                                        0.0,
+                                        "",
+                                        painLevel,
+                                        hasOtherSymptoms == true,
+                                        if (hasOtherSymptoms == true) otherSymptomsText else "",
+                                        tookMedicine == true,
+                                        if (tookMedicine == true) medicineText else ""
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isSubmitting
+                        ) {
+                            Text(if (uiState.isSubmitting) "Submitting\u2026" else "Submit")
+                        }
+                    }
+                }
+            }
+
+            item(key = "bottom_spacer") {
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VasRow(
+    level: Int,
+    isSelected: Boolean,
+    enabled: Boolean,
+    onSelect: () -> Unit
+) {
+    val bgColor = if (isSelected) vasColors[level].copy(alpha = 0.15f) else Color.Transparent
+    val borderColor = if (isSelected) vasColors[level] else Color.Transparent
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor)
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable(enabled = enabled, onClick = onSelect)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = level.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = vasColors[level],
+            modifier = Modifier.width(28.dp),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier.size(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            FaceIcon(level = level, color = vasColors[level])
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        val label = vasLabels[level]
+        if (label.isNotEmpty()) {
+            Text(
+                text = label.replace("\n", " "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(vasColors[level], CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "\u2713",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
