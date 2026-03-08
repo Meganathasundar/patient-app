@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.patientapp.health.ui.auth.LoginFragment"
+        android:label="Login">
+        <action
+            android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment" />
+        <action
+            android:id="@+id/action_login_to_doctorHome"
+            app:destination="@id/doctorHomeFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_login_to_patientHome"
+            app:destination="@id/dailyFormFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.patientapp.health.ui.auth.RegisterFragment"
+        android:label="Register" />
+
+    <fragment
+        android:id="@+id/doctorHomeFragment"
+        android:name="com.patientapp.health.ui.doctor.DoctorHomeFragment"
+        android:label="Doctor Home">
+        <action
+            android:id="@+id/action_doctorHome_to_formHistory"
+            app:destination="@id/patientFormHistoryFragment" />
+        <action
+            android:id="@+id/action_doctorHome_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/patientFormHistoryFragment"
+        android:name="com.patientapp.health.ui.doctor.PatientFormHistoryFragment"
+        android:label="Form History">
+        <argument
+            android:name="patientId"
+            app:argType="string" />
+        <argument
+            android:name="patientName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/dailyFormFragment"
+        android:name="com.patientapp.health.ui.patient.DailyFormFragment"
+        android:label="Patient Home">
+        <action
+            android:id="@+id/action_dailyForm_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+</navigation>
