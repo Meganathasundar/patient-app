@@ -29,3 +29,4 @@ functions/.env.*
 # Keystore
 *.jks
 *.keystore
+keystore.properties
